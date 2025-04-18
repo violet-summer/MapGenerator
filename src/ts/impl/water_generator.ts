@@ -2,39 +2,42 @@ import * as log from 'loglevel';
 import Vector from '../vector';
 import FieldIntegrator from './integrator';
 import StreamlineGenerator from './streamlines';
-import {StreamlineParams} from './streamlines';
+import { StreamlineParams } from './streamlines';
 import TensorField from './tensor_field';
 import PolygonUtil from './polygon_util';
 
 export interface WaterParams extends StreamlineParams {
-    coastNoise: NoiseStreamlineParams;
-    riverNoise: NoiseStreamlineParams;
-    riverBankSize: number;
-    riverSize: number;
+    coastNoise: NoiseStreamlineParams; // 海岸线噪声参数
+    riverNoise: NoiseStreamlineParams; // 河流噪声参数
+    riverBankSize: number; // 河岸宽度
+    riverSize: number; // 河流宽度
 }
 
 export interface NoiseStreamlineParams {
-    noiseEnabled: boolean;
-    noiseSize: number;
-    noiseAngle: number;
+    noiseEnabled: boolean; // 是否启用噪声
+    noiseSize: number; // 噪声大小
+    noiseAngle: number; // 噪声角度
 }
 
 /**
- * Integrates polylines to create coastline and river, with controllable noise
+ * WaterGenerator 类
+ * 用于生成海岸线和河流的流线，并支持可控的噪声。
  */
 export default class WaterGenerator extends StreamlineGenerator {
-    private readonly TRIES = 100;
-    private coastlineMajor = true;
-    private _coastline: Vector[] = [];  // Noisy line
-    private _seaPolygon: Vector[] = [];  // Uses screen rectangle and simplified road
-    private _riverPolygon: Vector[] = []; // Simplified
-    private _riverSecondaryRoad: Vector[] = [];
+    private readonly TRIES = 100; // 最大尝试次数
+    private coastlineMajor = true; // 是否为主要海岸线
+    private _coastline: Vector[] = []; // 噪声化的海岸线
+    private _seaPolygon: Vector[] = []; // 海洋多边形
+    private _riverPolygon: Vector[] = []; // 河流多边形
+    private _riverSecondaryRoad: Vector[] = []; // 河流次级道路
 
-    constructor(integrator: FieldIntegrator,
-                origin: Vector,
-                worldDimensions: Vector,
-                protected params: WaterParams,
-                private tensorField: TensorField) {
+    constructor(
+        integrator: FieldIntegrator, // 流线积分器
+        origin: Vector, // 世界坐标原点
+        worldDimensions: Vector, // 世界坐标尺寸
+        protected params: WaterParams, // 水体生成参数
+        private tensorField: TensorField // 张量场
+    ) {
         super(integrator, origin, worldDimensions, params);
     }
 
@@ -54,13 +57,19 @@ export default class WaterGenerator extends StreamlineGenerator {
         return this._riverSecondaryRoad;
     }
 
+    /**
+     * 创建海岸线
+     */
     createCoast(): void {
         let coastStreamline;
         let seed;
         let major;
 
         if (this.params.coastNoise.noiseEnabled) {
-            this.tensorField.enableGlobalNoise(this.params.coastNoise.noiseAngle, this.params.coastNoise.noiseSize);    
+            this.tensorField.enableGlobalNoise(
+                this.params.coastNoise.noiseAngle,
+                this.params.coastNoise.noiseSize
+            );
         }
         for (let i = 0; i < this.TRIES; i++) {
             major = Math.random() < 0.5;
@@ -79,25 +88,31 @@ export default class WaterGenerator extends StreamlineGenerator {
         const road = this.simplifyStreamline(coastStreamline);
         this._seaPolygon = this.getSeaPolygon(road);
         this.allStreamlinesSimple.push(road);
-        this.tensorField.sea = (this._seaPolygon);
+        this.tensorField.sea = this._seaPolygon;
 
-        // Create intermediate samples
+        // 创建中间采样点
         const complex = this.complexifyStreamline(road);
         this.grid(major).addPolyline(complex);
         this.streamlines(major).push(complex);
         this.allStreamlines.push(complex);
     }
 
+    /**
+     * 创建河流
+     */
     createRiver(): void {
         let riverStreamline;
         let seed;
 
-        // Need to ignore sea when integrating for edge check
+        // 忽略海洋以便进行边界检查
         const oldSea = this.tensorField.sea;
         this.tensorField.sea = [];
         if (this.params.riverNoise.noiseEnabled) {
-            this.tensorField.enableGlobalNoise(this.params.riverNoise.noiseAngle, this.params.riverNoise.noiseSize);    
-        }        
+            this.tensorField.enableGlobalNoise(
+                this.params.riverNoise.noiseAngle,
+                this.params.riverNoise.noiseSize
+            );
+        }
         for (let i = 0; i < this.TRIES; i++) {
             seed = this.getSeed(!this.coastlineMajor);
             riverStreamline = this.extendStreamline(this.integrateStreamline(seed, !this.coastlineMajor));
@@ -111,37 +126,45 @@ export default class WaterGenerator extends StreamlineGenerator {
         this.tensorField.sea = oldSea;
         this.tensorField.disableGlobalNoise();
 
-        // Create river roads
-        const expandedNoisy = this.complexifyStreamline(PolygonUtil.resizeGeometry(riverStreamline, this.params.riverSize, false));
-        this._riverPolygon = PolygonUtil.resizeGeometry(riverStreamline, this.params.riverSize - this.params.riverBankSize, false);
-        // Make sure riverPolygon[0] is off screen
-        const firstOffScreen = expandedNoisy.findIndex(v => this.vectorOffScreen(v));
-        for (let i = 0; i < firstOffScreen; i++) {
-            expandedNoisy.push(expandedNoisy.shift());
-        }
+        // 创建河流道路
+        const expandedNoisy = this.complexifyStreamline(
+            PolygonUtil.resizeGeometry(riverStreamline, this.params.riverSize, false)
+        );
+        this._riverPolygon = PolygonUtil.resizeGeometry(
+            riverStreamline,
+            this.params.riverSize - this.params.riverBankSize,
+            false
+        );
 
-        // Create river roads
+        // 创建河流次级道路
         const riverSplitPoly = this.getSeaPolygon(riverStreamline);
-        const road1 = expandedNoisy.filter(v =>
-            !PolygonUtil.insidePolygon(v, this._seaPolygon)
-            && !this.vectorOffScreen(v)
-            && PolygonUtil.insidePolygon(v, riverSplitPoly));
+        const road1 = expandedNoisy.filter(
+            (v) =>
+                !PolygonUtil.insidePolygon(v, this._seaPolygon) &&
+                !this.vectorOffScreen(v) &&
+                PolygonUtil.insidePolygon(v, riverSplitPoly)
+        );
         const road1Simple = this.simplifyStreamline(road1);
-        const road2 = expandedNoisy.filter(v =>
-            !PolygonUtil.insidePolygon(v, this._seaPolygon)
-            && !this.vectorOffScreen(v)
-            && !PolygonUtil.insidePolygon(v, riverSplitPoly));
+        const road2 = expandedNoisy.filter(
+            (v) =>
+                !PolygonUtil.insidePolygon(v, this._seaPolygon) &&
+                !this.vectorOffScreen(v) &&
+                !PolygonUtil.insidePolygon(v, riverSplitPoly)
+        );
         const road2Simple = this.simplifyStreamline(road2);
 
         if (road1.length === 0 || road2.length === 0) return;
 
-        if (road1[0].distanceToSquared(road2[0]) < road1[0].distanceToSquared(road2[road2.length - 1])) {
+        if (
+            road1[0].distanceToSquared(road2[0]) <
+            road1[0].distanceToSquared(road2[road2.length - 1])
+        ) {
             road2Simple.reverse();
         }
 
         this.tensorField.river = road1Simple.concat(road2Simple);
 
-        // Road 1
+        // 保存次级道路
         this.allStreamlinesSimple.push(road1Simple);
         this._riverSecondaryRoad = road2Simple;
 
@@ -154,12 +177,12 @@ export default class WaterGenerator extends StreamlineGenerator {
     }
 
     /**
-     * Assumes simplified
-     * Used for adding river roads
+     * 假设简化
+     * 用于添加河流道路
      */
     private manuallyAddStreamline(s: Vector[], major: boolean): void {
         this.allStreamlinesSimple.push(s);
-        // Create intermediate samples
+        // 创建中间采样点
         const complex = this.complexifyStreamline(s);
         this.grid(major).addPolyline(complex);
         this.streamlines(major).push(complex);
@@ -167,43 +190,19 @@ export default class WaterGenerator extends StreamlineGenerator {
     }
 
     /**
-     * Might reverse input array
+     * 可能会反转输入数组
      */
     private getSeaPolygon(polyline: Vector[]): Vector[] {
-        // const seaPolygon = PolygonUtil.sliceRectangle(this.origin, this.worldDimensions,
-        //     polyline[0], polyline[polyline.length - 1]);
-
-        // // Replace the longest side with coastline
-        // let longestIndex = 0;
-        // let longestLength = 0;
-        // for (let i = 0; i < seaPolygon.length; i++) {
-        //     const next = (i + 1) % seaPolygon.length;
-        //     const d = seaPolygon[i].distanceToSquared(seaPolygon[next]);
-        //     if (d > longestLength) {
-        //         longestLength = d;
-        //         longestIndex = i;
-        //     }
-        // }
-
-        // const insertBackwards = seaPolygon[longestIndex].distanceToSquared(polyline[0]) > seaPolygon[longestIndex].distanceToSquared(polyline[polyline.length - 1]);
-        // if (insertBackwards) {
-        //     polyline.reverse();
-        // }
-
-        // seaPolygon.splice((longestIndex + 1) % seaPolygon.length, 0, ...polyline);
-        
         return PolygonUtil.lineRectanglePolygonIntersection(this.origin, this.worldDimensions, polyline);
-
-        // return PolygonUtil.boundPolyToScreen(this.origin, this.worldDimensions, seaPolygon);
     }
 
     /**
-     * Insert samples in streamline until separated by dstep
+     * 在流线上插入样本，直到样本间距为 dstep
      */
     private complexifyStreamline(s: Vector[]): Vector[] {
         const out: Vector[] = [];
         for (let i = 0; i < s.length - 1; i++) {
-            out.push(...this.complexifyStreamlineRecursive(s[i], s[i+1]));
+            out.push(...this.complexifyStreamlineRecursive(s[i], s[i + 1]));
         }
         return out;
     }
@@ -214,30 +213,55 @@ export default class WaterGenerator extends StreamlineGenerator {
         }
         const d = v2.clone().sub(v1);
         const halfway = v1.clone().add(d.multiplyScalar(0.5));
-        
+
         const complex = this.complexifyStreamlineRecursive(v1, halfway);
         complex.push(...this.complexifyStreamlineRecursive(halfway, v2));
         return complex;
     }
 
     /**
-     * Mutates streamline
+     * 扩展流线
+     * 变异流线
      */
     private extendStreamline(streamline: Vector[]): Vector[] {
-            streamline.unshift(streamline[0].clone().add(
-                streamline[0].clone().sub(streamline[1]).setLength(this.params.dstep * 5)));
-            streamline.push(streamline[streamline.length - 1].clone().add(
-                streamline[streamline.length - 1].clone().sub(streamline[streamline.length - 2]).setLength(this.params.dstep * 5)));
-            return streamline;
-        }
-
-    private reachesEdges(streamline: Vector[]): boolean {
-        return this.vectorOffScreen(streamline[0]) && this.vectorOffScreen(streamline[streamline.length - 1]);
+        streamline.unshift(
+            streamline[0]
+                .clone()
+                .add(streamline[0].clone().sub(streamline[1]).setLength(this.params.dstep * 5))
+        );
+        streamline.push(
+            streamline[streamline.length - 1]
+                .clone()
+                .add(
+                    streamline[streamline.length - 1]
+                        .clone()
+                        .sub(streamline[streamline.length - 2])
+                        .setLength(this.params.dstep * 5)
+                )
+        );
+        return streamline;
     }
 
+    /**
+     * 检查流线是否到达边界
+     */
+    private reachesEdges(streamline: Vector[]): boolean {
+        return (
+            this.vectorOffScreen(streamline[0]) &&
+            this.vectorOffScreen(streamline[streamline.length - 1])
+        );
+    }
+
+    /**
+     * 检查向量是否在屏幕外
+     */
     private vectorOffScreen(v: Vector): boolean {
         const toOrigin = v.clone().sub(this.origin);
-        return toOrigin.x <= 0 || toOrigin.y <= 0 ||
-            toOrigin.x >= this.worldDimensions.x || toOrigin.y >= this.worldDimensions.y;
+        return (
+            toOrigin.x <= 0 ||
+            toOrigin.y <= 0 ||
+            toOrigin.x >= this.worldDimensions.x ||
+            toOrigin.y >= this.worldDimensions.y
+        );
     }
 }

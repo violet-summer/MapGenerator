@@ -23,41 +23,41 @@ import PolygonUtil from '../impl/polygon_util';
  * Handles Map folder, glues together impl
  */
 export default class MainGUI {
-    private numBigParks: number = 2;
-    private numSmallParks: number = 0;
-    private clusterBigParks: boolean = false;
+    private numBigParks: number = 2; // 大型公园数量
+    private numSmallParks: number = 0; // 小型公园数量
+    private clusterBigParks: boolean = false; // 是否将大型公园聚集在一起
 
-    private domainController = DomainController.getInstance();
-    private intersections: Vector[] = [];
-    private bigParks: Vector[][] = [];
-    private smallParks: Vector[][] = [];
-    private animate: boolean = true;
-    private animationSpeed: number = 30;
+    private domainController = DomainController.getInstance(); // 域控制器实例
+    private intersections: Vector[] = []; // 道路交点
+    private bigParks: Vector[][] = []; // 大型公园多边形
+    private smallParks: Vector[][] = []; // 小型公园多边形
+    private animate: boolean = true; // 是否启用动画
+    private animationSpeed: number = 30; // 动画速度
 
-    private coastline: WaterGUI;
-    private mainRoads: RoadGUI;
-    private majorRoads: RoadGUI;
-    private minorRoads: RoadGUI;
-    private buildings: Buildings;
+    private coastline: WaterGUI; // 水体生成器，用于生成海岸线
+    private mainRoads: RoadGUI; // 主干道路生成器
+    private majorRoads: RoadGUI; // 次干道路生成器
+    private minorRoads: RoadGUI; // 支路生成器
+    private buildings: Buildings; // 建筑生成器
 
     // Params
-    private coastlineParams: WaterParams;
-    private mainParams: StreamlineParams;
-    private majorParams: StreamlineParams;
+    private coastlineParams: WaterParams; // 海岸线生成参数
+    private mainParams: StreamlineParams; // 主干道路生成参数
+    private majorParams: StreamlineParams; // 次干道路生成参数
     private minorParams: StreamlineParams = {
-        dsep: 20,
-        dtest: 15,
-        dstep: 1,
-        dlookahead: 40,
-        dcirclejoin: 5,
-        joinangle: 0.1,  // approx 30deg
-        pathIterations: 1000,
-        seedTries: 300,
-        simplifyTolerance: 0.5,
-        collideEarly: 0,
+        dsep: 20, // 流线分离距离
+        dtest: 15, // 流线测试距离
+        dstep: 1, // 流线步长
+        dlookahead: 40, // 流线前瞻距离
+        dcirclejoin: 5, // 圆形连接距离
+        joinangle: 0.1, // 连接角度（约30度）
+        pathIterations: 1000, // 路径迭代次数
+        seedTries: 300, // 种子尝试次数
+        simplifyTolerance: 0.5, // 简化容差
+        collideEarly: 0, // 提前碰撞检测
     };
 
-    private redraw: boolean = true;
+    private redraw: boolean = true; // 是否需要重绘
 
     constructor(private guiFolder: dat.GUI, private tensorField: TensorField, private closeTensorFolder: () => void) {
         guiFolder.add(this, 'generateEverything');
@@ -187,16 +187,17 @@ export default class MainGUI {
     }
 
     addParks(): void {
+        // 添加公园到张量场
         const g = new Graph(this.majorRoads.allStreamlines
             .concat(this.mainRoads.allStreamlines)
             .concat(this.minorRoads.allStreamlines), this.minorParams.dstep);
         this.intersections = g.intersections;
 
         const p = new PolygonFinder(g.nodes, {
-                maxLength: 20,
-                minArea: 80,
-                shrinkSpacing: 4,
-                chanceNoDivide: 1,
+                maxLength: 20, // 最大边长
+                minArea: 80, // 最小面积
+                shrinkSpacing: 4, // 收缩间距
+                chanceNoDivide: 1, // 不分割的概率
             }, this.tensorField);
         p.findPolygons();
         const polygons = p.polygons;
@@ -236,6 +237,7 @@ export default class MainGUI {
     }
 
     async generateEverything() {
+        // 生成所有地图元素
         this.coastline.generateRoads();
         await this.mainRoads.generateRoads();
         await this.majorRoads.generateRoads(this.animate);

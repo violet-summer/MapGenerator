@@ -5,15 +5,16 @@ export interface RandomRange {
 
 export default class Util {
     // Must match style.css and index.html
-    static readonly CANVAS_ID = 'map-canvas';
-    static readonly IMG_CANVAS_ID = 'img-canvas';
-    static readonly SVG_ID = 'map-svg';
+    static readonly CANVAS_ID = 'map-canvas'; // 主画布的 HTML 元素 ID
+    static readonly IMG_CANVAS_ID = 'img-canvas'; // 用于导出图像的隐藏画布 ID
+    static readonly SVG_ID = 'map-svg'; // 用于导出 SVG 的 HTML 元素 ID
 
     // How far to integrate streamlines beyond screen - for making buildings reach the edge
-    static readonly DRAW_INFLATE_AMOUNT = 1.2;
+    static readonly DRAW_INFLATE_AMOUNT = 1.2; // 用于扩展流线超出屏幕范围的比例
 
     // Refresh dat.GUI values
     static updateGui(gui: dat.GUI): void {
+        // 更新 dat.GUI 控件的显示值
         if (gui.__controllers) {
             gui.__controllers.forEach(c => c.updateDisplay());    
         }
@@ -25,6 +26,7 @@ export default class Util {
     }
 
     static removeAllFolders(gui: dat.GUI): void {
+        // 移除 dat.GUI 中的所有文件夹
         if (gui.__folders) {
             for (const folderName in gui.__folders) {
                 gui.removeFolder(gui.__folders[folderName]);
@@ -33,6 +35,7 @@ export default class Util {
     }
 
     static randomRange(max: number, min=0): number {
+        // 生成指定范围内的随机数
         return (Math.random() * (max - min)) + min;
     }
 

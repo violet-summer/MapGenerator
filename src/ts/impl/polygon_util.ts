@@ -4,10 +4,14 @@ import Vector from '../vector';
 import * as jsts from 'jsts';
 
 export default class PolygonUtil {
-    private static geometryFactory = new jsts.geom.GeometryFactory();
+    private static geometryFactory = new jsts.geom.GeometryFactory(); // JSTS 几何工厂，用于创建几何对象
 
     /**
-     * Slices rectangle by line, returning smallest polygon
+     * 切割矩形，返回最小的多边形
+     * @param origin 矩形的起点
+     * @param worldDimensions 矩形的宽高
+     * @param p1 切割线的起点
+     * @param p2 切割线的终点
      */
     public static sliceRectangle(origin: Vector, worldDimensions: Vector, p1: Vector, p2: Vector): Vector[] {
         const rectangle = [
@@ -27,19 +31,22 @@ export default class PolygonUtil {
     }
 
     /**
-     * Used to create sea polygon
+     * 用于创建海洋多边形
+     * @param origin 矩形的起点
+     * @param worldDimensions 矩形的宽高
+     * @param line 切割线
      */
     public static lineRectanglePolygonIntersection(origin: Vector, worldDimensions: Vector, line: Vector[]): Vector[] {
-        const jstsLine = PolygonUtil.lineToJts(line);
+        const jstsLine = PolygonUtil.lineToJts(line); // 将线转换为 JSTS 几何对象
         const bounds = [
             origin,
             new Vector(origin.x + worldDimensions.x, origin.y),
             new Vector(origin.x + worldDimensions.x, origin.y + worldDimensions.y),
             new Vector(origin.x, origin.y + worldDimensions.y),
         ];
-        const boundingPoly = PolygonUtil.polygonToJts(bounds);
-        const union = boundingPoly.getExteriorRing().union(jstsLine);
-        const polygonizer = new (jsts.operation as any).polygonize.Polygonizer();
+        const boundingPoly = PolygonUtil.polygonToJts(bounds); // 创建矩形的 JSTS 多边形
+        const union = boundingPoly.getExteriorRing().union(jstsLine); // 合并边界和线
+        const polygonizer = new (jsts.operation as any).polygonize.Polygonizer(); // 创建多边形化器
         polygonizer.add(union);
         const polygons = polygonizer.getPolygons();
 
@@ -58,31 +65,37 @@ export default class PolygonUtil {
         return smallestPoly.getCoordinates().map((c: any) => new Vector(c.x, c.y));
     }
 
+    /**
+     * 计算多边形的面积
+     * @param polygon 多边形顶点数组
+     */
     public static calcPolygonArea(polygon: Vector[]): number {
         let total = 0;
 
         for (let i = 0; i < polygon.length; i++) {
-          const addX = polygon[i].x;
-          const addY = polygon[i == polygon.length - 1 ? 0 : i + 1].y;
-          const subX = polygon[i == polygon.length - 1 ? 0 : i + 1].x;
-          const subY = polygon[i].y;
+            const addX = polygon[i].x;
+            const addY = polygon[i == polygon.length - 1 ? 0 : i + 1].y;
+            const subX = polygon[i == polygon.length - 1 ? 0 : i + 1].x;
+            const subY = polygon[i].y;
 
-          total += (addX * addY * 0.5);
-          total -= (subX * subY * 0.5);
+            total += (addX * addY * 0.5);
+            total -= (subX * subY * 0.5);
         }
 
         return Math.abs(total);
     }
 
     /**
-     * Recursively divide a polygon by its longest side until the minArea stopping condition is met
+     * 递归地将多边形按最长边分割，直到满足最小面积条件
+     * @param p 多边形顶点数组
+     * @param minArea 最小面积
      */
     public static subdividePolygon(p: Vector[], minArea: number): Vector[][] {
         const area = PolygonUtil.calcPolygonArea(p);
         if (area < 0.5 * minArea) {
             return [];
         }
-        const divided: Vector[][] = [];  // Array of polygons
+        const divided: Vector[][] = []; // 分割后的多边形数组
 
         let longestSideLength = 0;
         let longestSide = [p[0], p[1]];
@@ -98,9 +111,7 @@ export default class PolygonUtil {
             }
         }
 
-        // Shape index
-        // Using rectangle ratio of 1:4 as limit
-        // if (area / perimeter * perimeter < 0.04) {
+        // 形状指数
         if (area / (perimeter * perimeter) < 0.04) {
             return [];
         }
@@ -109,7 +120,7 @@ export default class PolygonUtil {
             return [p];
         }
 
-        // Between 0.4 and 0.6
+        // 偏移量在 0.4 到 0.6 之间
         const deviation = (Math.random() * 0.2) + 0.4;
 
         const averagePoint = longestSide[0].clone().add(longestSide[1]).multiplyScalar(deviation);
@@ -120,10 +131,9 @@ export default class PolygonUtil {
 
         const bisect = [averagePoint.clone().add(perpVector), averagePoint.clone().sub(perpVector)];
 
-        // Array of polygons
+        // 分割多边形
         try {
             const sliced = PolyK.Slice(PolygonUtil.polygonToPolygonArray(p), bisect[0].x, bisect[0].y, bisect[1].x, bisect[1].y);
-            // Recursive call
             for (const s of sliced) {
                 divided.push(...PolygonUtil.subdividePolygon(PolygonUtil.polygonArrayToPolygon(s), minArea));
             }
@@ -136,7 +146,10 @@ export default class PolygonUtil {
     }
 
     /**
-     * Shrink or expand polygon
+     * 缩放多边形
+     * @param geometry 多边形顶点数组
+     * @param spacing 缩放距离
+     * @param isPolygon 是否为多边形
      */
     public static resizeGeometry(geometry: Vector[], spacing: number, isPolygon=true): Vector[] {
         try {
@@ -152,6 +165,10 @@ export default class PolygonUtil {
         }
     }
 
+    /**
+     * 计算多边形的平均点
+     * @param polygon 多边形顶点数组
+     */
     public static averagePoint(polygon: Vector[]): Vector {
         if (polygon.length === 0) return Vector.zeroVector();
         const sum = Vector.zeroVector();
@@ -161,6 +178,11 @@ export default class PolygonUtil {
         return sum.divideScalar(polygon.length);
     }
 
+    /**
+     * 判断点是否在多边形内
+     * @param point 点
+     * @param polygon 多边形顶点数组
+     */
     public static insidePolygon(point: Vector, polygon: Vector[]): boolean {
         // ray-casting algorithm based on
         // http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
@@ -182,15 +204,29 @@ export default class PolygonUtil {
         return inside;
     }
 
+    /**
+     * 判断点是否在矩形内
+     * @param point 点
+     * @param origin 矩形的起点
+     * @param dimensions 矩形的宽高
+     */
     public static pointInRectangle(point: Vector, origin: Vector, dimensions: Vector): boolean {
         return point.x >= origin.x && point.y >= origin.y && point.x <= dimensions.x && point.y <= dimensions.y;
     }
 
+    /**
+     * 将线转换为 JSTS 几何对象
+     * @param line 线的顶点数组
+     */
     private static lineToJts(line: Vector[]): jsts.geom.LineString {
         const coords = line.map(v => new jsts.geom.Coordinate(v.x, v.y));
         return PolygonUtil.geometryFactory.createLineString(coords);
     }
 
+    /**
+     * 将多边形转换为 JSTS 几何对象
+     * @param polygon 多边形顶点数组
+     */
     private static polygonToJts(polygon: Vector[]): jsts.geom.Polygon {
         const geoInput = polygon.map(v => new jsts.geom.Coordinate(v.x, v.y));
         geoInput.push(geoInput[0]);  // Create loop
@@ -198,7 +234,8 @@ export default class PolygonUtil {
     }
 
     /**
-     * [ v.x, v.y, v.x, v.y ]...
+     * 将多边形转换为数组
+     * @param p 多边形顶点数组
      */
     private static polygonToPolygonArray(p: Vector[]): number[] {
         const outP: number[] = [];
@@ -210,7 +247,8 @@ export default class PolygonUtil {
     }
 
     /**
-     * [ v.x, v.y, v.x, v.y ]...
+     * 将数组转换为多边形
+     * @param p 多边形顶点数组
      */
     private static polygonArrayToPolygon(p: number[]): Vector[] {
         const outP = [];
