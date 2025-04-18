@@ -1,0 +1,65 @@
+{
+  "zoom": 1.4,
+  "worldDimensions": {
+    "x": 2000,
+    "y": 1000
+  },
+  "origin": {
+    "x": 0,
+    "y": 0
+  },
+  "tensorField": {
+    "basisFields": [
+      {
+        "type": "grid",
+        "x": 520,
+        "y": 258,
+        "size": 1124,
+        "decay": 31,
+        "theta": 61
+      },
+      {
+        "type": "grid",
+        "x": 1528,
+        "y": 760,
+        "size": 637,
+        "decay": 35,
+        "theta": 28
+      },
+      {
+        "type": "grid",
+        "x": 1528,
+        "y": 258,
+        "size": 1023,
+        "decay": 47,
+        "theta": 2.1
+      },
+      {
+        "type": "grid",
+        "x": 520,
+        "y": 760,
+        "size": 954,
+        "decay": 48,
+        "theta": 51
+      },
+      {
+        "type": "radial",
+        "x": 1250,
+        "y": 587,
+        "size": 232,
+        "decay": 4.5,
+        "theta": 0
+      }
+    ]
+  },
+  "options": {
+    "drawCentre": true,
+    "animationSpeed": 30,
+    "orthographic": false,
+    "cameraX": 0,
+    "cameraY": 0,
+    "showFrame": false,
+    "zoomBuildings": false,
+    "buildingModels": false
+  }
+}

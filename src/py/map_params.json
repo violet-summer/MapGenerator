@@ -1,0 +1,125 @@
+{
+  "zoom": 0.3,
+  "worldDimensions": {"x": 2000, "y": 1000},
+  "origin": {"x": 0, "y": 0},
+  "tensorField": {
+    "noiseParams": {
+      "globalNoise": false,
+      "noiseSizePark": 100,
+      "noiseAnglePark": 30,
+      "noiseSizeGlobal": 100,
+      "noiseAngleGlobal": 30
+    },
+    "basisFields": [
+      {
+        "type": "grid",
+        "x": 520,
+        "y": 258,
+        "size": 1001,
+        "decay": 43,
+        "theta": 41
+      },
+      {
+        "type": "grid",
+        "x": 1528,
+        "y": 760,
+        "size": 423,
+        "decay": 46,
+        "theta": 6.7
+      },
+      {
+        "type": "grid",
+        "x": 1528,
+        "y": 258,
+        "size": 1328,
+        "decay": 37,
+        "theta": 82
+      },
+      {
+        "type": "grid",
+        "x": 520,
+        "y": 760,
+        "size": 700,
+        "decay": 3.1,
+        "theta": 73
+      },
+      {
+        "type": "radial",
+        "x": 1454,
+        "y": 287,
+        "size": 281,
+        "decay": 33
+      }
+    ]
+  },
+  "water": {
+    "coastParams": {
+      "noiseEnabled": true,
+      "noiseSize": 30,
+      "noiseAngle": 20
+    },
+    "riverParams": {
+      "noiseEnabled": true,
+      "noiseSize": 30,
+      "noiseAngle": 20,
+      "simplifyTolerance": 10
+    }
+  },
+  "streamlines": {
+    "dev": {
+      "dsep": 20,
+      "dtest": 15,
+      "pathIterations": 3072,
+      "seedTries": 300,
+      "dstep": 1,
+      "dlookahead": 40,
+      "dcirclejoin": 5,
+      "joinangle": 0.1
+    },
+    "main": {
+      "dsep": 400,
+      "dtest": 200,
+      "pathIterations": 3072,
+      "seedTries": 300,
+      "dstep": 1,
+      "dlookahead": 500,
+      "dcirclejoin": 5,
+      "joinangle": 0.1,
+      "simplifyTolerance": 0.5,
+      "collideEarly": 0
+    },
+    "major": {
+      "dsep": 100,
+      "dtest": 30,
+      "pathIterations": 3072,
+      "seedTries": 300,
+      "dstep": 1,
+      "dlookahead": 200,
+      "dcirclejoin": 5,
+      "joinangle": 0.1,
+      "simplifyTolerance": 0.5,
+      "collideEarly": 0
+    },
+    "minor": {
+      "dsep": 20,
+      "dtest": 15,
+      "pathIterations": 3072,
+      "seedTries": 300,
+      "dstep": 1,
+      "dlookahead": 40,
+      "dcirclejoin": 5,
+      "joinangle": 0.1,
+      "simplifyTolerance": 0.5,
+      "collideEarly": 0
+    }
+  },
+  "parks": {
+    "numBigParks": 2,
+    "numSmallParks": 0
+  },
+  "buildings": {
+    "minArea": 50,
+    "shrinkSpacing": 4,
+    "chanceNoDivide": 0.05
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "Tensor Field": {
+    "Grids": [
+      {"x": 520, "y": 258, "_size": 1124, "_decay": 31, "theta": 61},
+      {"x": 1528, "y": 760, "_size": 637, "_decay": 35, "theta": 28},
+      {"x": 1528, "y": 258, "_size": 1023, "_decay": 47, "theta": 2.1},
+      {"x": 520, "y": 760, "_size": 954, "_decay": 48, "theta": 51}
+    ],
+    "Radials": [
+      {"x": 1250, "y": 587, "_size": 232, "_decay": 4.5}
+    ]
+  },
+  "Water": {
+    "CoastParams": {"noiseEnabled": true, "noiseSize": 30, "noiseAngle": 20},
+    "RiverParams": {"noiseEnabled": true, "noiseSize": 30, "noiseAngle": 20}
+  },
+  "Main": {
+    "Params": {
+      "dsep": 400, "dtest": 200, "pathIterations": 3072, "seedTries": 300,
+      "dstep": 1, "dlookahead": 500, "dcirclejoin": 5, "joinangle": 0.1,
+      "simplifyTolerance": 0.5, "collideEarly": 0
+    }
+  },
+  "Options": {
+    "_size": 2000,
+    "drawCentre": true
+  }
+}
