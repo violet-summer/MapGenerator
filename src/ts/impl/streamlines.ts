@@ -248,9 +248,15 @@ export default class StreamlineGenerator {
 
     protected simplifyStreamline(streamline: Vector[]): Vector[] {
         const simplified = [];
+        const points=[]
         for (const point of simplify(streamline, this.params.simplifyTolerance)) {
             simplified.push(new Vector(point.x, point.y));
+            points.push([point.x, point.y]);
+
         }
+        console.log(`streamline ${points}`);
+        console.log(`Simplified streamline count: ${simplified.length}`);
+        console.log(`Simplified streamline content:`, simplified);
         return simplified;
     }
 

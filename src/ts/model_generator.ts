@@ -73,6 +73,9 @@ export default class ModelGenerator {
             }
             case ModelGeneratorStates.SUBTRACT_OCEAN: {
                 const seaLevelMesh = this.polygonToMesh(this.ground, 0);
+                
+            console.log("Ground coordinates:", this.ground);
+       
                 this.threeToBlender(seaLevelMesh);
                 const seaLevelSTL = this.exportSTL.fromMesh(seaLevelMesh);
                 this.zip.file("model/domain.stl", seaLevelSTL);
